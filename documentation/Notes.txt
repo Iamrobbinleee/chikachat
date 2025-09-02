@@ -1,0 +1,6 @@
+!! NOTES !!
+
+1. Project Tech Stacks:
+- PHP (v8.4.1).
+- MongoDB.
+- NodeJS (v22.14.0).
