@@ -1,9 +1,14 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
+session_start();
+$allowedOrigin = "http://localhost:8080";
 
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+if (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN'] === $allowedOrigin) {
+    header("Access-Control-Allow-Origin: $allowedOrigin");
+    header("Access-Control-Allow-Credentials: true");
+    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    header("Access-Control-Allow-Headers: Content-Type");
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
@@ -37,6 +42,13 @@ elseif ($action === 'login') {
     $user = $db->users->findOne(['username' => $data['username']]);
 
     if ($user && password_verify($data['password'], $user['password_hash'])) {
+        $_SESSION['user_id'] = (string)$user['_id'];
+        $_SESSION['username'] = $user['username'];
+
+        // echo "Fetched.";
+        // header('/panel.php');
+        // exit();
+
         echo json_encode([
             'status' => 'success',
             'user' => [
@@ -48,6 +60,12 @@ elseif ($action === 'login') {
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Invalid credentials']);
     }
+} elseif ($action === 'logout') {
+    session_start();
+    session_unset();
+    session_destroy();
+    header('Location: /index.html');
+    exit();
 } elseif ($action === 'create_group') {
     $data = json_decode(file_get_contents("php://input"), true);
 

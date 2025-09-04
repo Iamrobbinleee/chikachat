@@ -54,10 +54,14 @@
         const res = await fetch(API_URL + "login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username, password }),
+          credentials: "include"
         });
         const data = await res.json();
-        alert(JSON.stringify(data));
+        if(data.status === 'success'){
+            window.location.href = '/panel.php';
+        }
+        // alert(JSON.stringify(data));
       } catch (err) {
         console.error(err);
         alert("Error connecting to server.");
