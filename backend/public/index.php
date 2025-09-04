@@ -17,6 +17,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 header("Content-Type: application/json");
 
+try {
+    $manager = new MongoDB\Driver\Manager("mongodb://localhost:27017");
+    $DB = "chikachat";
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['status'=>'error','message'=>'DB connection failed','error'=>$e->getMessage()]);
+    exit;
+}
+
 // MongoDB connection
 $client = new MongoDB\Client("mongodb://localhost:27017");
 $db = $client->chikachat;
@@ -77,6 +86,37 @@ elseif ($action === 'login') {
     ]);
 
     echo json_encode(['status' => 'success', 'message' => 'Group created']);
+} elseif ($action === 'get_users') {
+    if (!isset($_SESSION['user_id'])) {
+        echo json_encode([
+            "status" => "error",
+            "message" => "Not logged in"
+        ]);
+        exit;
+    }
+
+    $currentUserId = $_SESSION['user_id'];
+
+    // Find all users except the current one
+    $filter = ['_id' => ['$ne' => new MongoDB\BSON\ObjectId($currentUserId)]];
+    $opts   = ['projection' => ['username' => 1, 'email' => 1]];
+    $q      = new MongoDB\Driver\Query($filter, $opts);
+    $cursor = $manager->executeQuery("$DB.users", $q);
+
+    $users = [];
+    foreach ($cursor as $u) {
+        $users[] = [
+            'id'       => (string)$u->_id,
+            'username' => $u->username ?? '',
+            'email'    => $u->email ?? ''
+        ];
+    }
+
+    echo json_encode([
+        "status" => "success",
+        "users"  => $users
+    ]);
+    exit;
 }
 else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
