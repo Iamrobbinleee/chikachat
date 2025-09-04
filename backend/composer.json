@@ -1,0 +1,13 @@
+{
+    "name": "vendor/autoload.php",
+    "description": "autoload PHP (vendor).",
+    "authors": [
+        {
+            "name": "iamrobbinleee",
+            "email": "leerobinroxas8@gmail.com"
+        }
+    ],
+    "require": {
+        "mongodb/mongodb": "^2.1"
+    }
+}
