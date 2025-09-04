@@ -1,1 +1,5 @@
 /backend/config/seed.js
+/backend/vendor/*
+/backend/composer.lock
+/websocket/node_modules/*
+/websocket/package-lock.json
