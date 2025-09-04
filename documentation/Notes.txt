@@ -7,4 +7,4 @@
 
 2. Local run:
 - "node server.js" for node.
-- php -S localhost:8080 (frontend) 8000 (backend).
+- php -S localhost:8080 (frontend) 8000 (backend). *specific folder before the file.*
