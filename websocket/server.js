@@ -40,4 +40,27 @@ io.on("connection", (socket) => {
     io.to(receiverId).emit("private_message", msg);
     io.to(senderId).emit("private_message", msg);
   });
+
+  //Group Chats
+    // Join group
+    socket.on("join_group", (groupId) => {
+    socket.join(groupId);
+    console.log(`User joined group ${groupId}`);
+    });
+
+    // Send group message
+    socket.on("group_message", async ({ senderId, groupId, content }) => {
+    const msg = {
+        sender_id: senderId,
+        group_id: groupId,
+        content,
+        timestamp: new Date(),
+        status: "sent"
+    };
+
+    await db.collection("messages").insertOne(msg);
+
+    // Emit to all users in the group (except sender)
+    io.to(groupId).emit("group_message", msg);
+    });
 });
