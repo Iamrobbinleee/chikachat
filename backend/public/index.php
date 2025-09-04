@@ -48,6 +48,17 @@ elseif ($action === 'login') {
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Invalid credentials']);
     }
+} elseif ($action === 'create_group') {
+    $data = json_decode(file_get_contents("php://input"), true);
+
+    $db->groups->insertOne([
+        'name' => $data['name'],
+        'members' => $data['members'], // array of userIds
+        'created_by' => $data['created_by'],
+        'created_at' => new MongoDB\BSON\UTCDateTime()
+    ]);
+
+    echo json_encode(['status' => 'success', 'message' => 'Group created']);
 }
 else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
