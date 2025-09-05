@@ -36,6 +36,14 @@ if ($action === 'register') {
     $data = json_decode(file_get_contents("php://input"), true);
     $hashed = password_hash($data['password'], PASSWORD_BCRYPT);
 
+    if(empty($_POST['username']) || empty($_POST['email']) || empty($_POST['password'])) {
+        echo json_encode([
+            'status' => 'error'
+            // 'message' => 'Some fields are missing.'
+        ]);
+        exit();
+    }
+
     $db->users->insertOne([
         'username' => $data['username'],
         'email' => $data['email'],
@@ -45,6 +53,7 @@ if ($action === 'register') {
     ]);
 
     echo json_encode(['status' => 'success']);
+    exit();
 }
 elseif ($action === 'login') {
     $data = json_decode(file_get_contents("php://input"), true);
@@ -66,8 +75,10 @@ elseif ($action === 'login') {
                 'email' => $user['email']
             ]
         ]);
+        exit();
     } else {
         echo json_encode(['status' => 'error', 'message' => 'Invalid credentials']);
+        exit();
     }
 } elseif ($action === 'logout') {
     session_start();
@@ -86,6 +97,7 @@ elseif ($action === 'login') {
     ]);
 
     echo json_encode(['status' => 'success', 'message' => 'Group created']);
+    exit();
 } elseif ($action === 'get_users') {
     if (!isset($_SESSION['user_id'])) {
         echo json_encode([
@@ -120,4 +132,5 @@ elseif ($action === 'login') {
 }
 else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid action']);
+    exit();
 }
