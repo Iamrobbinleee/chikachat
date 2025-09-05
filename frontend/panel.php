@@ -9,8 +9,6 @@
 <body>
 <?php
     session_start();
-    error_reporting(E_ERROR | E_PARSE);
-    ini_set('display_errors', 0);
     if (!isset($_SESSION['user_id'])) {
         session_unset();
         session_destroy();
@@ -18,17 +16,18 @@
         exit;
     }
 ?>
-    <div class="ui basic segment">
-        <div>
-            <h2>Hello there, <?php echo $_SESSION['username']; ?>!</h2>
+<div class="ui basic segment">
+    <div class="ui secondary pointing menu">
+        <a class="active item" data-tab="private-chats">Private Chats</a>
+        <a class="item" data-tab="group-chats">Group Chats</a>
+        <div class="right menu">
+            <a class="ui item" onclick="logout()">Logout</a>
         </div>
+    </div>
 
-        <div>
-            <a href="logout.php">Signout</a>
-        </div>
-
-         <div class="ui grid basic segment">
-            <div class="eight wide column">
+    <div class="ui active tab segment" data-tab="private-chats">
+        <div class="ui grid">
+            <div class="four wide column">
                 <div class="ui card">
                     <div class="content">
                         <div class="header">Private Chats</div>
@@ -39,56 +38,35 @@
                             <div class="item">Loading...</div>
                         </div>
                     </div>
-                    <!-- <div class="extra content">
-                        <button class="ui button">Join Project</button>
-                    </div> -->
                 </div>
             </div>
-            <div class="eight wide column">
-                <div class="ui card">
+
+            <!-- Chat box -->
+            <div class="twelve wide column">
+                <div class="ui card" style="width: 100%;">
                     <div class="content">
-                        <div class="header">Group Chats</div>
+                        <div class="header">Name of the person</div>
                     </div>
                     <div class="content">
-                        <h4 class="ui sub header">Activity</h4>
-                        <div class="ui small feed">
-                            <div class="event">
-                                <div class="content">
-                                <div class="summary">
-                                    <a>Elliot Fu</a> added <a>Jenny Hess</a> to the project
-                                </div>
-                                </div>
-                            </div>
+                        <div class="ui relaxed divided list" id="private-messages">
+                            <div class="item">Loading...</div>
                         </div>
                     </div>
-                    <!-- <div class="extra content">
-                        <button class="ui button">Join Project</button>
-                    </div> -->
                 </div>
             </div>
-         </div>
+        </div>
     </div>
+</div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.js"></script>
 <script>
     const API_URL = "http://localhost:8000/index.php?action=";
+    $('.menu .item').tab();
 
-    async function logout() {
-
-      try {
-        const status = true;
-        const res = await fetch(API_URL + "logout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status })
-        });
-      } catch (err) {
-        console.error(err);
-        // alert("Error connecting to server.");
-      }
+    function logout() {    
+        window.location.href = API_URL + "logout";
     }
-
 
 async function loadUsers() {
     try {

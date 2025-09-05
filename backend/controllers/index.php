@@ -1,6 +1,5 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
-session_start();
 $allowedOrigin = "http://localhost:8080";
 
 if (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN'] === $allowedOrigin) {
@@ -14,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit;
 }
-
+session_start();
 header("Content-Type: application/json");
 
 try {
@@ -70,6 +69,22 @@ if ($action === 'register') {
     $data = json_decode(file_get_contents("php://input"), true);
     $user = $db->users->findOne(['username' => $data['username']]);
 
+    if(empty($data['username']) || empty($data['password'])) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Some fields are missing.'
+        ]);
+        exit();
+    }
+
+    if(!$user) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Account does not exist.'
+        ]);
+        exit();
+    }
+
     if ($user && password_verify($data['password'], $user['password_hash'])) {
         $_SESSION['user_id'] = (string)$user['_id'];
         $_SESSION['username'] = $user['username'];
@@ -84,14 +99,13 @@ if ($action === 'register') {
         ]);
         exit();
     } else {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid credentials']);
+        echo json_encode(['status' => 'error', 'message' => 'Invalid credentials.']);
         exit();
     }
 } elseif ($action === 'logout') {
-    session_start();
     session_unset();
     session_destroy();
-    header('Location: /index.html');
+    header('Location: http://localhost:8080/index.html');
     exit();
 } elseif ($action === 'create_group') {
     $data = json_decode(file_get_contents("php://input"), true);
