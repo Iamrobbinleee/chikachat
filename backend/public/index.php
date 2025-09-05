@@ -66,18 +66,13 @@ if ($action === 'register') {
         ]
     ]);
     exit();
-}
-elseif ($action === 'login') {
+} elseif ($action === 'login') {
     $data = json_decode(file_get_contents("php://input"), true);
     $user = $db->users->findOne(['username' => $data['username']]);
 
     if ($user && password_verify($data['password'], $user['password_hash'])) {
         $_SESSION['user_id'] = (string)$user['_id'];
         $_SESSION['username'] = $user['username'];
-
-        // echo "Fetched.";
-        // header('/panel.php');
-        // exit();
 
         echo json_encode([
             'status' => 'success',
