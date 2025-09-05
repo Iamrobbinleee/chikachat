@@ -36,15 +36,15 @@ if ($action === 'register') {
     $data = json_decode(file_get_contents("php://input"), true);
     $hashed = password_hash($data['password'], PASSWORD_BCRYPT);
 
-    if(empty($_POST['username']) || empty($_POST['email']) || empty($_POST['password'])) {
+    if(empty($data['username']) || empty($data['email']) || empty($data['password'])) {
         echo json_encode([
-            'status' => 'error'
-            // 'message' => 'Some fields are missing.'
+            'status' => 'error',
+            'message' => 'Some fields are missing.'
         ]);
         exit();
     }
 
-    $db->users->insertOne([
+    $test = $db->users->insertOne([
         'username' => $data['username'],
         'email' => $data['email'],
         'password_hash' => $hashed,
@@ -52,7 +52,19 @@ if ($action === 'register') {
         'created_at' => new MongoDB\BSON\UTCDateTime()
     ]);
 
-    echo json_encode(['status' => 'success']);
+    $user = $db->users->findOne(['username' => $data['username']]);
+
+    $_SESSION['user_id'] = (string)$user['_id'];
+    $_SESSION['username'] = $user['username'];
+
+    echo json_encode([
+        'status' => 'success',
+        'user' => [
+            '_id' => (string)$user['_id'],
+            'username' => $user['username'],
+            'email' => $user['email']
+        ]
+    ]);
     exit();
 }
 elseif ($action === 'login') {

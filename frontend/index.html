@@ -54,6 +54,7 @@
         <label>Password: </label>
         <input type="password" id="register-password" placeholder="Password">
       </div>
+      <span class="ui basic label red" id="requirement">Missing field required.</span>
       <button onclick="register()">Register</button>
     </form>
     <div class="switch">
@@ -66,6 +67,7 @@
   <script>
     // 👇 Point this to your PHP API
     const API_URL = "http://localhost:8000/index.php?action=";
+    document.getElementById('requirement').style.display = 'none';
 
     function toggleForms() {
       document.getElementById("login-card").style.display =
@@ -109,7 +111,15 @@
         });
 
         const data = await res.json();
-        alert(JSON.stringify(data));
+        if(data.status === "error"){
+           document.getElementById('requirement').style.display = '';
+           return;
+        }
+        document.getElementById('requirement').style.display = 'none';
+        if(data.status === 'success'){
+          window.location.href = '/panel.php';
+        }
+        // alert(JSON.stringify(data));
       } catch (err) {
         console.error(err);
         alert("Error connecting to server.");
