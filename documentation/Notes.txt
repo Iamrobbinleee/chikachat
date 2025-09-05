@@ -11,3 +11,5 @@
 
 3. Default Page (Login/Landing) URL:
 - http://localhost:8080/index.html
+
+4. Always update the links and scripts of CDNs (Libraries, packages, dependencies, etc.).
