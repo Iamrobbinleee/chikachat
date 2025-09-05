@@ -8,3 +8,6 @@
 2. Local run:
 - "node server.js" for node.
 - php -S localhost:8080 (frontend) 8000 (backend). *specific folder before the file.*
+
+3. Default Page (Login/Landing) URL:
+- http://localhost:8080/index.html
