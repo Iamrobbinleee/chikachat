@@ -28,18 +28,18 @@ io.on("connection", (socket) => {
 
   // Load previous conversation between two users
   socket.on("load_conversation", async ({ userA, userB }) => {
-    const messages = await db.collection("messages")
-      .find({
-        $or: [
-          { sender_id: userA, receiver_id: userB },
-          { sender_id: userB, receiver_id: userA }
-        ]
-      })
-      .sort({ timestamp: 1 })
-      .toArray();
-
-    socket.emit("conversation_history", { user: userB, messages });
-  });
+  const messages = await db.collection("messages")
+    .find({
+      $or: [
+        { sender_id: userA, receiver_id: userB },
+        { sender_id: userB, receiver_id: userA }
+      ]
+    })
+    .sort({ timestamp: 1 })
+    .toArray();
+  
+  socket.emit("conversation_history", { userA, userB, messages });
+});
 
   // Handle sending private message
   socket.on("private_message", async ({ senderId, receiverId, content }) => {
