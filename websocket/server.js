@@ -19,13 +19,29 @@ init();
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Join private chat room
+  // === PRIVATE CHAT ===
+  // Join private chat room (userId is usually your logged-in user’s id/username/email)
   socket.on("join", (userId) => {
     socket.join(userId);
-    console.log(`User ${userId} joined`);
+    console.log(`User ${userId} joined private room`);
   });
 
-  // Handle private message
+  // Load previous conversation between two users
+  socket.on("load_conversation", async ({ userA, userB }) => {
+    const messages = await db.collection("messages")
+      .find({
+        $or: [
+          { sender_id: userA, receiver_id: userB },
+          { sender_id: userB, receiver_id: userA }
+        ]
+      })
+      .sort({ timestamp: 1 })
+      .toArray();
+
+    socket.emit("conversation_history", { user: userB, messages });
+  });
+
+  // Handle sending private message
   socket.on("private_message", async ({ senderId, receiverId, content }) => {
     const msg = {
       sender_id: senderId,
@@ -37,30 +53,44 @@ io.on("connection", (socket) => {
 
     await db.collection("messages").insertOne(msg);
 
+    // Send to both sender and receiver
     io.to(receiverId).emit("private_message", msg);
     io.to(senderId).emit("private_message", msg);
   });
 
-  //Group Chats
-    // Join group
-    socket.on("join_group", (groupId) => {
+  // === GROUP CHAT ===
+  socket.on("join_group", (groupId) => {
     socket.join(groupId);
     console.log(`User joined group ${groupId}`);
-    });
+  });
 
-    // Send group message
-    socket.on("group_message", async ({ senderId, groupId, content }) => {
+  // Load previous group conversation
+  socket.on("load_group_conversation", async (groupId) => {
+    const messages = await db.collection("messages")
+      .find({ group_id: groupId })
+      .sort({ timestamp: 1 })
+      .toArray();
+
+    socket.emit("group_conversation_history", { groupId, messages });
+  });
+
+  // Handle group message
+  socket.on("group_message", async ({ senderId, groupId, content }) => {
     const msg = {
-        sender_id: senderId,
-        group_id: groupId,
-        content,
-        timestamp: new Date(),
-        status: "sent"
+      sender_id: senderId,
+      group_id: groupId,
+      content,
+      timestamp: new Date(),
+      status: "sent"
     };
 
     await db.collection("messages").insertOne(msg);
 
-    // Emit to all users in the group (except sender)
+    // Emit to everyone in the group
     io.to(groupId).emit("group_message", msg);
-    });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
 });

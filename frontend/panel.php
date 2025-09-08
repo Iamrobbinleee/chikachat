@@ -15,6 +15,7 @@
         header('Location: /index.html');
         exit;
     }
+    $currentUser = $_SESSION['user_id'];
 ?>
 <div class="ui basic segment">
     <div class="ui secondary pointing menu">
@@ -27,6 +28,7 @@
 
     <div class="ui active tab segment" data-tab="private-chats">
         <div class="ui grid">
+            <!-- Sidebar -->
             <div class="four wide column">
                 <div class="ui card">
                     <div class="content">
@@ -91,15 +93,23 @@
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.5.0/dist/semantic.min.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 const API_URL = "http://localhost:8000/index.php?action=";
-$('.menu .item').tab();
-const conversations = {};
-let currentUser = null;
+const socket = io("http://localhost:3000");
+const loggedInUser = "<?php echo $currentUser; ?>";
 
-document.getElementById('default-msg').style.display = currentUser === null ? 'block' : 'none';
+$('.menu .item').tab();
+
+let selectedUser = null;
+let selectedUserId = null;
+
+document.getElementById('default-msg').style.display = 'block';
 document.getElementById('type-send').style.display = 'none';
 document.getElementById('close-current-user').style.display = 'none';
+
+// Join socket room for this user
+socket.emit("join", loggedInUser);
 
 function logout() {    
     window.location.href = API_URL + "logout";
@@ -118,25 +128,28 @@ async function loadUsers() {
             list.innerHTML = "";
 
             data.users.forEach(user => {
+                if (user.username === loggedInUser) return;
+                const username = user.username || user.email;
+
                 const item = document.createElement("div");
                 item.className = "item";
                 item.innerHTML = `
                     <i class="user icon"></i>
                     <div class="content">
-                        <a class="header">${user.username || user.email}</a>
+                        <a class="header">${username}</a>
                         <div class="description">Start chat</div>
                     </div>
                 `;
                 item.onclick = () => {
-                    selectUser(user.username || user.email);
+                    selectUser(username, user.id);
                 };
                 list.appendChild(item);
 
-                if (!conversations[user.username]) {
-                    conversations[user.username] = [
-                        { from: user.username, text: "Hello 👋 This is your first message.", time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) },
-                    ];
-                }
+                // if (!conversations[user.username]) {
+                //     conversations[user.username] = [
+                //         { from: user.username, text: "Hello 👋 This is your first message.", time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) },
+                //     ];
+                // }
             });
         }
     } catch (err) {
@@ -144,26 +157,29 @@ async function loadUsers() {
     }
 }
 
-function selectUser(username) {
-    currentUser = username;
+function selectUser(username, selUserId) {
+    selectedUser = username;
+    selectedUserId = selUserId;
     document.getElementById("selected-username").textContent = username;
-    document.getElementById('type-send').style.display = currentUser === null ? 'none' : 'block';
-    document.getElementById('close-current-user').style.display = currentUser === null ? 'none' : 'block';
-    const input = document.getElementById("message-input").value = "";
-    if(input == "") {
-        document.getElementById('sendMyMsg').style.pointerEvents = 'none';
-        document.getElementById('sendMyMsg').style.backgroundColor = 'gray';
-    }
-    renderConversation(username);
+    document.getElementById('type-send').style.display = 'block';
+    document.getElementById('close-current-user').style.display = 'block';
+    document.getElementById('default-msg').style.display = 'none';
+
+    document.getElementById("message-input").value = "";
+    toggleSendButton(false);
+
+    // Load conversation from server
+    socket.emit("load_conversation", { userA: loggedInUser, userB: selUserId });
 }
 
 function renderConversation(username) {
     const container = document.getElementById("private-messages");
-    // if () {
+    container.innerHTML = "";
+
+    if (!conversations[username] || conversations[username].length === 0) {
         container.innerHTML = `<h4 style="text-align:center;color:gray;">Start Chatting with ${username}</h4>`;
-    // } else {
-        // container.innerHTML = '';
-    // }
+        return;
+    }
 
     conversations[username].forEach(msg => {
         const div = document.createElement("div");
@@ -199,17 +215,20 @@ function renderConversation(username) {
 
 function handleSend(e) {
     e.preventDefault();
-    if (!currentUser) return;
-    let input = document.getElementById("message-input");
+    if (!selectedUser) return;
+
+    const input = document.getElementById("message-input");
     const text = input.value.trim();
     if (!text) return;
 
-    const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    conversations[currentUser].push({ from: "me", text, time: now });
+    socket.emit("private_message", {
+        senderId: loggedInUser,
+        receiverId: selectedUserId,
+        content: text
+    });
+
     input.value = "";
-    document.getElementById('sendMyMsg').style.pointerEvents = 'none';
-    document.getElementById('sendMyMsg').style.backgroundColor = 'gray';
-    renderConversation(currentUser);
+    toggleSendButton(false);
 }
 
 function closeChat(){
@@ -221,17 +240,42 @@ function closeChat(){
     document.getElementById('type-send').style.display = 'none';
     document.getElementById('close-current-user').style.display = 'none';
     document.getElementById("selected-username").textContent = '';
+    selectedUser = null;
+    selectedUserId = null;
+}
+
+// === SOCKET EVENTS ===
+socket.on("conversation_history", ({ user, messages }) => {
+    if (user === selectedUserId) {
+        renderConversation(messages);
+    }
+});
+
+socket.on("private_message", (msg) => {
+    if (msg.sender_id === selectedUserId || msg.receiver_id === selectedUserId) {
+        socket.emit("load_conversation", { userA: loggedInUser, userB: selectedUserId });
+    }
+});
+
+// === HELPERS ===
+function toggleSendButton(enabled) {
+    const btn = document.getElementById('sendMyMsg');
+    if (enabled) {
+        btn.style.pointerEvents = '';
+        btn.style.backgroundColor = '';
+    } else {
+        btn.style.pointerEvents = 'none';
+        btn.style.backgroundColor = 'gray';
+    }
+}
+
+function formatTime(ts) {
+    return new Date(ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 }
 
 document.getElementById('message-input').addEventListener('input', () => {
-    let input = document.getElementById("message-input").value;
-    if(input == "") {
-        document.getElementById('sendMyMsg').style.pointerEvents = 'none';
-        document.getElementById('sendMyMsg').style.backgroundColor = 'gray';
-    } else {
-        document.getElementById('sendMyMsg').style.pointerEvents = '';
-        document.getElementById('sendMyMsg').style.backgroundColor = '';
-    }
+    const text = document.getElementById("message-input").value;
+    toggleSendButton(text.trim() !== "");
 });
 
 document.addEventListener("DOMContentLoaded", loadUsers);
