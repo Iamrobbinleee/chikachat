@@ -43,7 +43,15 @@ if ($action === 'register') {
         exit();
     }
 
-    $test = $db->users->insertOne([
+    if($db->users->findOne(['username' => $data['username']]) || $db->users->findOne(['email' => $data['email']])) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Account already existed.'
+        ]);
+        exit();
+    }
+
+    $db->users->insertOne([
         'username' => $data['username'],
         'email' => $data['email'],
         'password_hash' => $hashed,

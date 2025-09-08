@@ -20,7 +20,7 @@
 <div class="ui basic segment">
     <div class="ui secondary pointing menu">
         <a class="active item" data-tab="private-chats">Private Chats</a>
-        <a class="item" data-tab="group-chats">Group Chats</a>
+        <!-- <a class="item" data-tab="group-chats">Group Chats</a> -->
         <div class="right menu">
             <a class="ui item" onclick="logout()">Logout</a>
         </div>
