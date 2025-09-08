@@ -128,7 +128,7 @@ async function loadUsers() {
             list.innerHTML = "";
 
             data.users.forEach(user => {
-                if (user.username === loggedInUser) return;
+                if (user.id === loggedInUser) return;
                 const username = user.username || user.email;
 
                 const item = document.createElement("div");
@@ -163,34 +163,37 @@ function selectUser(username, selUserId) {
     document.getElementById("selected-username").textContent = username;
     document.getElementById('type-send').style.display = 'block';
     document.getElementById('close-current-user').style.display = 'block';
-    document.getElementById('default-msg').style.display = 'none';
-
+    if(document.getElementById('default-msg')){
+        document.getElementById('default-msg').style.display = 'none';
+    }
+        
     document.getElementById("message-input").value = "";
     toggleSendButton(false);
 
     // Load conversation from server
     socket.emit("load_conversation", { userA: loggedInUser, userB: selUserId });
+    // document.getElementById('default-msg').style.display = 'none';
 }
 
-function renderConversation(username) {
+function renderConversation(messages) {
     const container = document.getElementById("private-messages");
     container.innerHTML = "";
 
-    if (!conversations[username] || conversations[username].length === 0) {
-        container.innerHTML = `<h4 style="text-align:center;color:gray;">Start Chatting with ${username}</h4>`;
+    if (!messages || messages.length === 0) {
+        container.innerHTML = `<h4 style="text-align:center;color:gray;">Start Chatting with ${selectedUser}</h4>`;
         return;
     }
 
-    conversations[username].forEach(msg => {
+    messages.forEach(msg => {
         const div = document.createElement("div");
         div.className = "comment";
 
-        if (msg.from === "me") {
+        if (msg.sender_id === loggedInUser) {
             div.innerHTML = `
                 <div class="content" style="text-align:right;">
-                    <div class="metadata"><span>${msg.time}</span></div>
+                    <div class="metadata"><span>${formatTime(msg.timestamp)}</span></div>
                     <div class="text" style="background:#2185d0; color:white; display:inline-block; padding:10px; border-radius:12px;">
-                        ${msg.text}
+                        ${msg.content}
                     </div>
                     <a class="author">You</a> <i class="user icon"></i>
                 </div>
@@ -198,11 +201,11 @@ function renderConversation(username) {
         } else {
             div.innerHTML = `
                 <div class="content" style="text-align:left;">
-                    <i class="user icon"></i> <a class="author">${msg.from}</a>
+                    <i class="user icon"></i> <a class="author">${selectedUser}</a>
                     <div class="text" style="background:#f1f1f1; display:inline-block; padding:10px; border-radius:12px;">
-                        ${msg.text}
+                        ${msg.content}
                     </div>
-                    <div class="metadata"><span>${msg.time}</span></div>
+                    <div class="metadata"><span>${formatTime(msg.timestamp)}</span></div>
                 </div>
             `;
         }
@@ -245,11 +248,12 @@ function closeChat(){
 }
 
 // === SOCKET EVENTS ===
-socket.on("conversation_history", ({ user, messages }) => {
-    if (user === selectedUserId) {
-        renderConversation(messages);
-    }
+socket.on("conversation_history", ({ userA, userB, messages }) => {
+  if (userB === selectedUserId || userA === selectedUserId) {
+    renderConversation(messages);
+  }
 });
+
 
 socket.on("private_message", (msg) => {
     if (msg.sender_id === selectedUserId || msg.receiver_id === selectedUserId) {
